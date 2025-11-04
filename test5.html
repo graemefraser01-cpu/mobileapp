@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ForkLift Summon Client</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#4f46e5',
+                        'primary-dark': '#4338ca',
+                        'secondary': '#10b981',
+                        'secondary-dark': '#059669',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles to ensure the app-like container is centered and full height */
+        body {
+            background-color: #f3f4f6; /* Light gray background */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Start from the top on mobile */
+            padding-top: 2rem;
+        }
+
+        @media (min-width: 640px) {
+            body {
+                align-items: center; /* Center vertically on larger screens */
+            }
+        }
+    </style>
+</head>
+<body class="font-sans">
+
+    <div id="app-container" class="w-full max-w-md bg-white p-6 m-4 sm:p-8 rounded-3xl shadow-2xl border border-gray-100 transition-all duration-300">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">ForkLift Summoner</h1>
+        <p class="text-gray-500 mb-6 text-center text-sm">Tap a button to request a ForkLift.</p>
+
+        <!-- User ID Selector -->
+        <div class="mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+            <label for="userIdSelect" class="block text-sm font-medium text-indigo-700 mb-2">
+                Select Location ID:
+            </label>
+            <select id="userIdSelect" class="w-full p-3 border border-indigo-300 rounded-lg shadow-inner focus:ring-primary focus:border-primary transition duration-150 text-gray-700">
+                <option value="1">Loc 1 (Small Fab)</option>
+                <option value="2">Loc 2 (Large Fab)</option>
+                <option value="3">Loc 3 (Medium Fab)</option>
+                <option value="4">Loc 4 (Stores)</option>
+                <option value="5">Loc 5 (Goods in)</option>
+            </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-4">
+            <button id="getButton" class="w-full flex items-center justify-center bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/50">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                GET Selected User
+            </button>
+
+            <button id="postButton1" class="w-full flex items-center justify-center bg-secondary hover:bg-secondary-dark text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-secondary/50">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                POST ForkLift 1
+            </button>
+        <button id="postButton2" class="w-full flex items-center justify-center bg-secondary hover:bg-secondary-dark text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-secondary/50">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                POST ForkLift 2
+            </button>
+
+		</div>
+
+        <!-- Result Display Area -->
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-3 border-b pb-2">API Response</h2>
+            <div id="loadingIndicator" class="hidden text-center text-primary font-medium p-4">
+                <div class="animate-spin inline-block w-6 h-6 border-4 border-t-4 border-t-primary border-gray-200 rounded-full"></div>
+                <span class="ml-2">Loading...</span>
+            </div>
+            <div id="resultOutput" class="bg-gray-50 p-4 rounded-xl text-sm overflow-x-auto min-h-[100px] border border-gray-200 shadow-inner">
+                <p class="text-gray-500">The results of your API call will appear here.</p>
+            </div>
+        </div>
+
+        <!-- Error/Message Modal (Custom alert alternative) -->
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50 transition-opacity duration-300 opacity-0" onclick="closeModal()">
+            <div id="modal-content" class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-transform duration-300 scale-95" onclick="event.stopPropagation()">
+                <h3 id="modal-title" class="text-lg font-bold mb-3 text-red-600">Error</h3>
+                <p id="modal-body" class="text-gray-700 mb-4">Something went wrong.</p>
+                <button onclick="closeModal()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define the API URL
+        //const API_URL = 'https://jsonplaceholder.typicode.com';
+        const API_URL = 'http://192.168.12.137';
+        // DOM element references
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultOutput = document.getElementById('resultOutput');
+        const getButton = document.getElementById('getButton');
+        const postButton1 = document.getElementById('postButton1');
+        const postButton2 = document.getElementById('postButton2');
+		const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        // New DOM reference for the selector
+        const userIdSelect = document.getElementById('userIdSelect'); 
+
+        /**
+         * Utility function to show the custom modal with a message.
+         * @param {string} title - The title of the modal.
+         * @param {string} body - The main content/message.
+         * @param {string} type - 'success' or 'error'.
+         */
+        function showModal(title, body, type = 'error') {
+            modalTitle.textContent = title;
+            modalBody.textContent = body;
+
+            // Update colors based on type
+            if (type === 'success') {
+                modalTitle.classList.remove('text-red-600');
+                modalTitle.classList.add('text-secondary-dark');
+            } else {
+                modalTitle.classList.remove('text-secondary-dark');
+                modalTitle.classList.add('text-red-600');
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // Animate in
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+                document.getElementById('modal-content').classList.remove('scale-95');
+                document.getElementById('modal-content').classList.add('scale-100');
+            }, 10);
+        }
+
+        /**
+         * Utility function to close the custom modal.
+         */
+        function closeModal() {
+            // Animate out
+            document.getElementById('modal-content').classList.remove('scale-100');
+            document.getElementById('modal-content').classList.add('scale-95');
+            modal.classList.remove('opacity-100');
+
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300); // Match CSS transition duration
+        }
+
+        /**
+         * Sets the loading state.
+         * @param {boolean} isLoading - Whether to show the loading indicator.
+         */
+        function setLoading(isLoading) {
+            loadingIndicator.classList.toggle('hidden', !isLoading);
+            getButton.disabled = isLoading;
+            postButton1.disabled = isLoading;
+			postButton2.disabled = isLoading;
+        }
+        
+
+        /**
+         * Displays the result object or error message in the output area.
+         * @param {Object|string} content - The content to display.
+         */
+        function displayResult(content) {
+            resultOutput.innerHTML = ''; // Clear previous content
+
+            if (typeof content === 'string') {
+                // If content is an error message string
+                resultOutput.classList.add('bg-red-50', 'text-red-700');
+                resultOutput.classList.remove('bg-gray-50', 'text-gray-500');
+                resultOutput.textContent = `Error: ${content}`;
+                showModal('API Error', content, 'error');
+            } else {
+                // If content is a successful JSON object
+                resultOutput.classList.remove('bg-red-50', 'text-red-700');
+                resultOutput.classList.add('bg-gray-50', 'text-gray-900');
+                const pre = document.createElement('pre');
+                pre.className = 'whitespace-pre-wrap break-words p-0 m-0';
+                pre.textContent = JSON.stringify(content, null, 2);
+                resultOutput.appendChild(pre);
+
+                // Show a success notification in the custom modal
+                const type = content.id ? 'GET' : 'POST';
+                showModal(`${type} Request Successful`, `The API call was completed successfully. Check the 'API Response' box below for details.`, 'success');
+            }
+        }
+
+        /**
+         * Handles the GET request to fetch a specific user.
+         */
+        async function handleGetRequest() {
+            setLoading(true);
+            const userId = userIdSelect.value; // Get the selected ID
+            resultOutput.textContent = `Fetching user data for ID ${userId}...`;
+
+            try {
+                // Use the selected ID in the fetch URL
+                const response = await fetch(`${API_URL}/message/${userId}`); 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                displayResult(error.message || 'Could not connect to API.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /**
+         * Handles the POST request to create a new resource.
+         */
+        async function handlePostRequest() {
+            setLoading(true);
+			const userId = userIdSelect.value; // Get the selected ID
+            resultOutput.textContent = 'Posting data...';
+
+         //   const newPostData = {
+          //      message: 'ASAP',
+          //      location: '${userId}',
+           // };
+
+  const newPostData = {
+                message: 'ASAP'
+				};
+				
+            try {
+                const response = await fetch(`${API_URL}/message/`, {
+                    method: 'POST',
+					 mode: "cors",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newPostData),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                // JSONPlaceholder returns the new post object with an ID (usually 101)
+                displayResult(data);
+            } catch (error) {
+                console.error('Post Error:', error);
+                displayResult(error.message || 'Could not send data to API.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Event Listeners
+        getButton.addEventListener('click', handleGetRequest);
+        postButton1.addEventListener('click', handlePostRequest);
+		postButton2.addEventListener('click', handlePostRequest);
+
+        // Initial message display
+        document.addEventListener('DOMContentLoaded', () => {
+             resultOutput.innerHTML = '<p class="text-gray-500">The results of your API call will appear here.</p>';
+        });
+
+    </script>
+</body>
+</html>
